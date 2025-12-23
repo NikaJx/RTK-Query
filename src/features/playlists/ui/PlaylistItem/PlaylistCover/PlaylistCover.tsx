@@ -6,7 +6,7 @@ import {
   useUploadPlaylistCoverMutation,
 } from '@/features/playlists/api/playlistsApi';
 import type { PlaylistData } from '@/features/playlists/api/playlistsApi.types';
-import { toast } from 'react-toastify';
+import { errorToast } from '@/common/utils/errorToast';
 
 type Props = {
   playlist: PlaylistData;
@@ -27,12 +27,12 @@ export const PlaylistCover: React.FC<Props> = ({ playlist }) => {
     if (!file) return;
 
     if (!allowedTypes.includes(file.type)) {
-      toast('ONly jpeg and more', { type: 'error', theme: 'colored' });
+      errorToast('ONly jpeg and more');
       return;
     }
 
     if (file.size > maxSize) {
-      toast('Size big', { type: 'error', theme: 'colored' });
+      errorToast('Size big');
       return;
     }
 
