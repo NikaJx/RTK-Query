@@ -1,12 +1,45 @@
 import { baseApi } from '@/app/api/baseApi';
-import type { MeResponse } from './authApi.types';
+import type { LoginArgs, LoginResponse, MeResponse } from './authApi.types';
+import { AUTH_KEYS } from '@/common/constants/constants';
 
 export const authApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getMe: build.query<MeResponse, void>({
       query: () => `auth/me`,
+      providesTags: ['Auth'],
+    }),
+    login: build.mutation<LoginResponse, LoginArgs>({
+      query: (payload) => ({
+        url: 'auth/login',
+        method: 'POST',
+        body: { ...payload, accessTokenTTL: '3m' },
+      }),
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        const { data } = await queryFulfilled;
+        localStorage.setItem(AUTH_KEYS.accessToken, data.accessToken);
+        localStorage.setItem(AUTH_KEYS.refreshToken, data.refreshToken);
+
+        // Invalidate after saving tokens
+        dispatch(authApi.util.invalidateTags(['Auth']));
+      },
+    }),
+    logout: build.mutation<void, void>({
+      query: () => {
+        const refreshToken = localStorage.getItem(AUTH_KEYS.refreshToken);
+        return {
+          url: 'auth/logout',
+          method: 'POST',
+          body: { refreshToken },
+        };
+      },
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        await queryFulfilled;
+        localStorage.removeItem(AUTH_KEYS.accessToken);
+        localStorage.removeItem(AUTH_KEYS.refreshToken);
+        dispatch(baseApi.util.resetApiState());
+      },
     }),
   }),
 });
 
-export const { useGetMeQuery } = authApi;
+export const { useGetMeQuery, useLoginMutation, useLogoutMutation } = authApi;
